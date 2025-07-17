@@ -1,2 +1,2 @@
 from src.db import db
-from src.db.decorators import get_session
+from src.db.func import get_session

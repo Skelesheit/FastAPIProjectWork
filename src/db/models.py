@@ -1,60 +1,43 @@
 import secrets
 from datetime import datetime, timedelta
-from typing import TypeVar, Type, Any
+from typing import Literal
 
 from sqlalchemy import Column, DateTime, Boolean, ForeignKey, Integer, String, func
 from sqlalchemy import update, select, delete
-from sqlalchemy.dialects.postgresql import ENUM
-from sqlalchemy.ext.asyncio import AsyncAttrs
-from sqlalchemy.orm import relationship, DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 from config import settings
 from src.auth.hash import validate, hash_password
 from src.db import get_session
+from src.db.base import Base
+from src.db.enums import user_type_postgres
 
-T = TypeVar('T', bound='BaseModel')
-
-
-class Base(AsyncAttrs, DeclarativeBase):
-    __abstract__ = True
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-
-    @classmethod
-    async def create(cls: Type[T], **kwargs: Any) -> T:
-        async with get_session() as session:
-            obj = cls(**kwargs)
-            session.add(obj)
-            await session.flush()
-            await session.refresh(obj)
-        return obj
-
-    @classmethod
-    async def delete(cls: Type[T]) -> None:
-        async with get_session() as session:
-            await session.execute(delete(cls))
-
-    async def update_by_id(self, id_: int, **kwargs) -> None:
-        async with get_session() as session:
-            stmt = update(type(self)).where(type(self).id == id_).values(**kwargs)
-            await session.execute(stmt)
+UserTypeLiteral = Literal['ИП', 'Юр. лицо', 'Физ. лицо']
 
 
 class User(Base):
     __tablename__ = 'user'
-    email = Column(String(255), unique=True, nullable=False)
-    password = Column(String(), nullable=False)
-    created_at = Column(DateTime, default=func.now())
-    user_type = Column(ENUM('ИП', 'Юр. лицо', 'Физ. лицо', name='user_type_enum'), )
-    is_verified = Column(Boolean, nullable=False, default=False)
-    is_filled = Column(Boolean, nullable=False, default=False)
-    is_admin = Column(Boolean, default=False, nullable=False)
 
-    token = relationship('RefreshToken', back_populates='user', uselist=False, cascade='all, delete-orphan')
-    contact = relationship('Contact', back_populates='user', uselist=False, cascade='all, delete-orphan')
-    individual_profile = relationship('IndividualProfile', back_populates='user', uselist=False,
-                                      cascade='all, delete-orphan')
-    legal_entity = relationship('LegalEntity', back_populates='user', uselist=False, cascade='all, delete-orphan')
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    password: Mapped[str] = mapped_column(String, nullable=False)
+    created_at: Mapped[DateTime] = mapped_column(DateTime, default=func.now())
+    user_type: Mapped[UserTypeLiteral] = mapped_column(user_type_postgres, nullable=False)
+    is_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_filled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    token: Mapped['RefreshToken'] = relationship(
+        'RefreshToken', back_populates='user', uselist=False, cascade='all, delete-orphan'
+    )
+    contact: Mapped['Contact'] = relationship(
+        'Contact', back_populates='user', uselist=False, cascade='all, delete-orphan'
+    )
+    individual_profile: Mapped['IndividualProfile'] = relationship(
+        'IndividualProfile', back_populates='user', uselist=False, cascade='all, delete-orphan'
+    )
+    legal_entity: Mapped['LegalEntity'] = relationship(
+        'LegalEntity', back_populates='user', uselist=False, cascade='all, delete-orphan'
+    )
 
     @classmethod
     async def create(cls, email, password) -> 'User':
@@ -79,13 +62,6 @@ class User(Base):
         return result.rowcount > 0
 
     @classmethod
-    async def get_by_id(cls, user_id: int) -> 'User | None':
-        async with get_session() as session:
-            stmt = select(cls).where(cls.id == user_id)
-            result = await session.execute(stmt)
-            return result.scalar_one_or_none()
-
-    @classmethod
     async def has_email(cls, email: str) -> bool:
         async with get_session() as session:
             stmt = select(cls).where(cls.email == email)
@@ -108,11 +84,12 @@ class User(Base):
 
 class RefreshToken(Base):
     __tablename__ = 'token'
-    user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
-    token = Column(String(), nullable=False)
-    expires_at = Column(DateTime(), nullable=False)
 
-    user = relationship('User', back_populates='token', uselist=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey('user.id'), nullable=False)
+    token: Mapped[str] = mapped_column(String, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+    user: Mapped['User'] = relationship('User', back_populates='token', uselist=False)
 
     @property
     def expired(self) -> bool:
@@ -133,6 +110,11 @@ class RefreshToken(Base):
 
     @classmethod
     async def create(cls, user_id: int) -> 'RefreshToken':
+        """
+        Удаляет старый токен и создаёт новый
+        :param user_id: id Пользователя
+        :return:
+        """
         await cls.delete_by_user_id(user_id)
         token = secrets.token_urlsafe(64)
         expires = datetime.now() + timedelta(days=settings.expire_refresh_token_time)
@@ -153,56 +135,61 @@ class RefreshToken(Base):
             stmt = delete(cls).where(cls.user_id == user_id)
             await session.execute(stmt)
 
-    @classmethod
-    async def delete(cls) -> None:
-        async with get_session() as session:
-            await session.execute(delete(cls))
-
 
 # контактная информация
 class Contact(Base):
     __tablename__ = 'contact_info'
-    user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
-    phone = Column(String(15), nullable=False)
-    city = Column(String(100), nullable=False)
-    address = Column(String(300), nullable=False)
 
-    user = relationship('User', back_populates='contact', uselist=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey('user.id'), nullable=False)
+    phone: Mapped[str] = mapped_column(String(15), nullable=False)
+    city: Mapped[str] = mapped_column(String(100), nullable=False)
+    address: Mapped[str] = mapped_column(String(300), nullable=False)
+
+    user: Mapped['User'] = relationship('User', back_populates='contact', uselist=False)
 
 
 # физическое лицо
 class IndividualProfile(Base):
     __tablename__ = 'profile_individual'
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
-    first_name = Column(String(100), nullable=False)
-    last_name = Column(String(100), nullable=False)
-    patronymic = Column(String(100), nullable=False)
 
-    user = relationship('User', back_populates='individual_profile', uselist=False)
+    user_id: Mapped[int] = Column(Integer, ForeignKey('user.id'), nullable=False)
+    first_name: Mapped[str] = Column(String(100), nullable=False)
+    last_name: Mapped[str] = Column(String(100), nullable=False)
+    patronymic: Mapped[str] = Column(String(100), nullable=False)
+
+    user: Mapped['User'] = relationship('User', back_populates='individual_profile', uselist=False)
 
 
-# юридическое лицо (база)
 class LegalEntity(Base):
     __tablename__ = 'legal_entity'
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
-    inn = Column(String(12), nullable=False)
-    ogrn = Column(String(13), nullable=False)
-    management_name = Column(String(300))
 
-    user = relationship('User', back_populates='legal_entity', uselist=False)
-    legal_entity_profile = relationship('LegalEntityProfile', back_populates='legal_entity', uselist=False,
-                                        cascade='all, delete-orphan')
+    user_id: Mapped[int] = mapped_column(ForeignKey('user.id'), nullable=False)
+    inn: Mapped[str] = mapped_column(String(12), nullable=False)
+    ogrn: Mapped[str] = mapped_column(String(13), nullable=False)
+    management_name: Mapped[str | None] = mapped_column(String(300), nullable=True)
+
+    user: Mapped['User'] = relationship('User', back_populates='legal_entity', uselist=False)
+
+    legal_entity_profile: Mapped['LegalEntityProfile'] = relationship(
+        'LegalEntityProfile',
+        back_populates='legal_entity',
+        uselist=False,
+        cascade='all, delete-orphan'
+    )
 
 
 # юридическое лицо - расширение (не ИП)
 class LegalEntityProfile(Base):
     __tablename__ = 'profile_legal_entity'
-    legal_id = Column(Integer, ForeignKey('legal_entity.id'), nullable=False)
-    org_name = Column(String(), nullable=False)
-    kpp = Column(String(9), nullable=False)
-    opf_full = Column(String(), nullable=False)
-    opf_short = Column(String(30), nullable=False)
 
-    legal_entity = relationship('LegalEntity', back_populates='legal_entity_profile', uselist=False)
+    legal_id: Mapped[int] = mapped_column(ForeignKey('legal_entity.id'), nullable=False)
+    org_name: Mapped[str] = mapped_column(String, nullable=False)
+    kpp: Mapped[str] = mapped_column(String(9), nullable=False)
+    opf_full: Mapped[str] = mapped_column(String, nullable=False)
+    opf_short: Mapped[str] = mapped_column(String(30), nullable=False)
+
+    legal_entity: Mapped['LegalEntity'] = relationship(
+        'LegalEntity',
+        back_populates='legal_entity_profile',
+        uselist=False
+    )
