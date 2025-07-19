@@ -22,11 +22,13 @@ class Settings(BaseSettings):
     DB_HOST: str
     DB_PORT: int
     DB_NAME: str
+    DB_URL: str
 
     # Mail
     MAIL_SECRET: str
     MAIL_SERVER: str
     MAIL_PORT: int
+    MAIL_START_TLS: bool
     MAIL_USE_TLS: bool
     MAIL_USERNAME: str
     MAIL_PASSWORD: str
@@ -52,15 +54,11 @@ class Settings(BaseSettings):
     )
 
     @property
-    def db_url(self) -> str:
+    def db_orm_url(self) -> str:
         return (
             f"{self.DB_PROVIDER}+{self.DB_DRIVER}://{self.DB_USER}:{self.DB_PASSWORD}@"
             f"{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
         )
-
-    @property
-    def async_db_url(self) -> str:
-        return self.db_url.replace("postgresql", "postgresql+asyncpg", 1)
 
 
 settings = Settings()

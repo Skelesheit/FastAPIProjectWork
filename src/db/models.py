@@ -2,9 +2,9 @@ import secrets
 from datetime import datetime, timedelta
 from typing import Literal
 
-from sqlalchemy import Column, DateTime, Boolean, ForeignKey, Integer, String, func
+from sqlalchemy import Column, DateTime, Boolean, ForeignKey, Integer, String, func, exists
 from sqlalchemy import update, select, delete
-from sqlalchemy.orm import relationship, Mapped, mapped_column
+from sqlalchemy.orm import relationship, Mapped, mapped_column, selectinload
 
 from config import settings
 from src.auth.hash import validate, hash_password
@@ -64,9 +64,9 @@ class User(Base):
     @classmethod
     async def has_email(cls, email: str) -> bool:
         async with get_session() as session:
-            stmt = select(cls).where(cls.email == email)
+            stmt = select(exists().where(cls.email == email))
             result = await session.execute(stmt)
-            return result.rowcount > 0
+        return result.scalar()
 
     @classmethod
     async def get_by_email(cls, email: str) -> 'User | None':
@@ -74,6 +74,22 @@ class User(Base):
             stmt = select(cls).where(cls.email == email)
             result = await session.execute(stmt)
             return result.scalar_one_or_none()
+
+    @classmethod
+    async def get_all_data(cls, id_: int) -> 'User | None':
+        async with get_session() as session:
+            stmt = (
+                select(cls)
+                .where(cls.id == id_)
+                .options(
+                    selectinload(User.contact),
+                    selectinload(User.individual_profile),
+                    selectinload(User.legal_entity),
+                    selectinload(User.legal_entity).selectinload(LegalEntity.legal_entity_profile)
+                )
+            )
+            result = await session.execute(stmt)
+        return result.scalars().one_or_none()
 
     def check_password(self, password: str) -> bool:
         return validate(password, self.password)
@@ -96,7 +112,7 @@ class RefreshToken(Base):
         return self.expires_at < datetime.now()
 
     @classmethod
-    async def get_by_token(cls, token: str) -> 'RefreshToken':
+    async def get_by_token(cls, token: str) -> 'RefreshToken | None':
         async with get_session() as session:
             stmt = select(cls).where(cls.token == token)
             result = await session.execute(stmt)
@@ -109,15 +125,15 @@ class RefreshToken(Base):
             await session.execute(stmt)
 
     @classmethod
-    async def create(cls, user_id: int) -> 'RefreshToken':
+    async def create_by_user_id(cls, user_id: int) -> 'RefreshToken':
         """
         Удаляет старый токен и создаёт новый
-        :param user_id: id Пользователя
-        :return:
+        :param user_id: id Пользователя, владельца токена
+        :return: model RefreshToken
         """
         await cls.delete_by_user_id(user_id)
         token = secrets.token_urlsafe(64)
-        expires = datetime.now() + timedelta(days=settings.expire_refresh_token_time)
+        expires = datetime.now() + timedelta(days=settings.EXPIRES_REFRESH_TOKEN_DAYS)
         async with get_session() as session:
             refresh_token = RefreshToken(
                 user_id=user_id,

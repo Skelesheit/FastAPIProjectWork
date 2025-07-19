@@ -6,7 +6,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from src.auth.token import validate_token
-from src.db.models import User
+from src.db import models
 
 security = HTTPBearer()
 
@@ -24,7 +24,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         except Exception as e:
             return JSONResponse(status_code=401, content={"detail": str(e)})
         # Получаем пользователя и кладём в request.state
-        user = await User.get_by_id(user_id)
+        user = await models.User.get(user_id)
         if user is None:
             return JSONResponse(status_code=401, content={"detail": "User not found"})
         request.state.user = user
@@ -41,7 +41,7 @@ class VerifiedUser:
         user = getattr(request.state, "user", None)
         if not user:
             user_id = validate_token(token)
-            user = await User.get_by_id(user_id)
+            user = await models.User.get_by_id(user_id)
             if not user:
                 raise HTTPException(status_code=401, detail="Unauthorized")
         if not user.is_verified:

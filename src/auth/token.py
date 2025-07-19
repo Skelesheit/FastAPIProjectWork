@@ -13,14 +13,23 @@ def generate_access_token(user_id: int) -> str:
         'sub': str(user_id),
         'type': 'access'
     }
-    return jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
+    secret_key = settings.SECRET_KEY
+    print("secret on generate:", secret_key)
+    token = jwt.encode(payload, secret_key, algorithm='HS256')
+    print("token by generate:", token)
+    return token
 
 
 def validate_token(token: str) -> int | None:
     try:
+        secret_key = settings.SECRET_KEY
+        print("secret on validate:", secret_key)
+        print(f"settings.secret_key = {settings.SECRET_KEY!r}")
+        print("token by validate:", token)
+        print(f"Token raw: {repr(token)}")
         payload = jwt.decode(
             token,
-            secret=settings.SECRET_KEY,
+            settings.SECRET_KEY,
             algorithms=["HS256"],
             options={"require": ["exp", "iat", "sub", "type"]},
             leeway=10

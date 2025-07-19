@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:13
+    restart: unless-stopped
+    container_name: db
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "postgres", "-d", "test_log_reg" ]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 5s
+    networks:
+      - app-network
+
+  backend:
+    build: .
+    container_name: backend
+    restart: unless-stopped
+    entrypoint: /app/init_db.sh
+    command: [ "poetry", "run", "uvicorn", "--host", "0.0.0.0", "--port", "5000", "main:app" ]
+    env_file:
+      - .env
+    ports:
+      - "5000:5000"
+    environment:
+      APP: app.py
+      DATABASE_URL: ${DB_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app-network
+
+volumes:
+  pg-data:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge
