@@ -13,8 +13,8 @@
 - **AsyncPG** — драйвер PostgreSQL
 - **Alembic** — миграции
 - **Poetry** — менеджер зависимостей
-- **Docker / Docker Compose**
-- **Pydantic / Pydantic Settings**
+- **Docker / Docker Compose** — деплой и автоматическое развёртывание
+- **Pydantic / Pydantic Settings** — сериализатор
 - **bcrypt / JWT / Email подтверждение**
 
 ---
