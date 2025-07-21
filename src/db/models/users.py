@@ -40,7 +40,7 @@ class User(Base):
     )
 
     @classmethod
-    async def create(cls, email, password) -> 'User':
+    async def create(cls, email: str, password: str) -> 'User':
         password_hash = hash_password(password)
         async with get_session() as session:
             user = User(email=email, password=password_hash)
@@ -168,10 +168,10 @@ class Contact(Base):
 class IndividualProfile(Base):
     __tablename__ = 'profile_individual'
 
-    user_id: Mapped[int] = Column(Integer, ForeignKey('user.id'), nullable=False)
-    first_name: Mapped[str] = Column(String(100), nullable=False)
-    last_name: Mapped[str] = Column(String(100), nullable=False)
-    patronymic: Mapped[str] = Column(String(100), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey('user.id'), nullable=False)
+    first_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    last_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    patronymic: Mapped[str] = mapped_column(String(100), nullable=False)
 
     user: Mapped['User'] = relationship('User', back_populates='individual_profile', uselist=False)
 

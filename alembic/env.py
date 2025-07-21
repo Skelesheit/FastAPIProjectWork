@@ -5,9 +5,7 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from config import settings  # если есть pydantic-настройки
-# Импорт своего Base и моделей
-from src.db.base import Base  # заменишь на свой путь
+from src.db.models import *
 
 # Конфигурация Alembic
 config = context.config
