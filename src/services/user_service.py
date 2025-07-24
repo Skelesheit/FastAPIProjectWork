@@ -2,9 +2,8 @@ from config import settings
 from src.auth import token
 from src.clients import captcha, mail
 from src.db import models
-from src.serializers.user_serializer import UserRegister, UserLogin, UserFillForm
+from src.serializers.user import UserRegister, UserLogin
 from src.services import ServiceException
-from src.use_cases.fill_data_workflow import FillDataWorkflow
 
 
 class UserService:
@@ -27,16 +26,14 @@ class UserService:
         is_valid = user.check_password(dto.password)
         if not is_valid:
             raise invalid_exception
+        if not user.is_verified:
+            raise {"message": "user not verified email"}
         refresh_token = await models.RefreshToken.create_by_user_id(user.id)
         access_token = token.generate_access_token(user.id)
-        return {"access_token": access_token, "refresh_token" : refresh_token.token, "type": "Bearer", 'expires_in': 60 * settings.EXPIRES_ACCESS_TOKEN_MINUTES}
+        return {"access_token": access_token, "refresh_token": refresh_token.token, "type": "Bearer",
+                'expires_in': 60 * settings.EXPIRES_ACCESS_TOKEN_MINUTES}
 
     @staticmethod
     async def logout(user_id: int) -> dict:
         await models.RefreshToken.delete_by_user_id(user_id)
         return {"message": "Пользователь успешно вышел"}
-
-    @staticmethod
-    async def fill_data(dto: UserFillForm, user_id: int) -> dict:
-        await FillDataWorkflow.execute(dto, user_id)
-        return {"message": "Пользователь успешно заполнил форму о себе"}

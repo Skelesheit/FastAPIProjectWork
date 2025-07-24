@@ -13,6 +13,7 @@ app.add_middleware(CORSMiddleware)
 app.include_router(handlers.auth_router, prefix="/auth", tags=["auth"])
 app.include_router(handlers.user_router, prefix="/user", tags=["user"])
 app.include_router(handlers.client_router, prefix="/client", tags=["client"])
+app.include_router(handlers.enterprise_router, prefix="/enterprise", tags=["enterprise"])
 
 
 @app.get('/')

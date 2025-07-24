@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     DADATA_TOKEN: str
     DADATA_API_URL: str
 
+    # Redis
+    REDIS_PORT: int
+    REDIS_PASSWORD: str
+
     # База данных
     model_config = SettingsConfigDict(
         env_file=os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")

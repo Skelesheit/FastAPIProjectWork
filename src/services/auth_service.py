@@ -2,7 +2,7 @@ from pydantic import ValidationError
 
 from src.auth import token
 from src.db import models
-from src.serializers.user_serializer import UserOut
+from src.serializers.user import UserOut
 from src.services import ServiceException
 
 

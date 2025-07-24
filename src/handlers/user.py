@@ -5,7 +5,7 @@ from starlette.responses import JSONResponse
 
 from config import settings
 from src.auth.dep import bearer_scheme, get_current_user_id
-from src.serializers.user_serializer import UserLogin, UserRegister, UserFillForm
+from src.serializers.user import UserLogin, UserRegister
 from src.services import ServiceException
 from src.services.user_service import UserService
 
@@ -58,12 +58,3 @@ async def logout(user_id: int = Depends(get_current_user_id)) -> Response:
     response.headers["Authorization"] = ""
     response.delete_cookie(key="refresh_token", path="/")
     return response
-
-
-@user_router.post("/fill-data", dependencies=[Security(bearer_scheme)], )
-async def fill_data(dto: UserFillForm, user_id: int = Depends(get_current_user_id)) -> Response:
-    try:
-        message = await UserService.fill_data(dto, user_id)
-    except ServiceException as e:
-        return JSONResponse(status_code=e.status_code, content=e.json_message)
-    return JSONResponse(status_code=200, content=message)

@@ -1,9 +1,9 @@
 from sqlalchemy import String, ForeignKey
-from sqlalchemy.dialects.postgresql import ENUM as PgEnum
+from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.db.base import Base
-from test_dir.enums import OperationType, MetalType
+from src.db.enums import OperationType, MetalType
 
 
 class Machine(Base):
@@ -16,7 +16,7 @@ class Metal(Base):
     __tablename__ = 'metal'
 
     metal_type: Mapped[MetalType] = mapped_column(
-        PgEnum(MetalType, name="metal_type_enum", create_type=True),
+        PG_ENUM(MetalType, name="metal_type_enum", create_type=True),
         nullable=False
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -26,7 +26,7 @@ class Operation(Base):
     __tablename__ = 'operation'
 
     operation_type: Mapped[OperationType] = mapped_column(
-        PgEnum(OperationType, name="operation_type_enum", create_type=True),
+        PG_ENUM(OperationType, name="operation_type_enum", create_type=True),
         nullable=False
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)

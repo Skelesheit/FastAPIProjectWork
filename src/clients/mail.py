@@ -1,31 +1,14 @@
 from email.message import EmailMessage
+from urllib.parse import urlencode
 
 from aiosmtplib import send
 
 from config import settings
 from src.auth.token import generate_access_token
-
-subject = "Подтвердите вашу почту"
-
-
-def generate_html(confirm_url: str) -> str:
-    return f"""
-        <p>Здравствуйте!</p>
-        <p>Пожалуйста, подтвердите свою почту, перейдя по ссылке:</p>
-        <p><a href="{confirm_url}">Подтвердить</a></p>
-        <p>Если вы не регистрировались — просто проигнорируйте это письмо.</p>
-        """
+from src.clients import html
 
 
-async def send_registration_email(user_id: int, email: str) -> None:
-    token = generate_access_token(user_id)
-    html = generate_html(f"{settings.BASE_URL}client/mail/{token}")
-    print(f"token is: {token}")
-    msg = EmailMessage()
-    msg["From"] = settings.MAIL_USERNAME
-    msg["To"] = email
-    msg["Subject"] = subject
-    msg.set_content(html, subtype="html")
+async def send_email_message(msg: EmailMessage) -> None:
     await send(
         msg,
         hostname=settings.MAIL_SERVER,
@@ -35,3 +18,32 @@ async def send_registration_email(user_id: int, email: str) -> None:
         username=settings.MAIL_USERNAME,
         password=settings.MAIL_PASSWORD,
     )
+
+
+def generate_message(email: str, subject: str, body: str) -> EmailMessage:
+    msg = EmailMessage()
+    msg["From"] = settings.MAIL_USERNAME
+    msg["To"] = email
+    msg["Subject"] = subject
+    msg.set_content(body, subtype="html")
+    return msg
+
+
+async def send_registration_email(user_id: int, email: str) -> None:
+    token = generate_access_token(user_id)
+    url = f"{settings.BASE_URL}client/mail/{token}"
+    html_content = html.generate_register_html(url)
+    msg = generate_message(email, html.register_subject, html_content)
+    await send_email_message(msg)
+
+
+async def send_invite_email(enterprise_id: int, email: str) -> None:
+    company_token = generate_access_token(enterprise_id)
+    params = urlencode({
+        "token": company_token,
+        "email": email
+    })
+    url = f"{settings.BASE_URL}client/mail-invite?{params}"
+    html_content = html.generate_invite_html(url)
+    msg = generate_message(email, html.invite_subject, html_content)
+    await send_email_message(msg)

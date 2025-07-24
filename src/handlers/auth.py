@@ -4,7 +4,7 @@ from starlette.responses import JSONResponse
 from config import settings
 from src.auth import dep
 from src.auth.dep import bearer_scheme
-from src.serializers.user_serializer import UserOut
+from src.serializers.user import UserOut
 from src.services import ServiceException
 from src.services.auth_service import AuthService
 
