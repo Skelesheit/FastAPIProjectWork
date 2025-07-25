@@ -7,7 +7,15 @@ from src import handlers
 # from src.auth import AuthMiddleware
 
 app = FastAPI()
-app.add_middleware(CORSMiddleware)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # адрес фронта
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"]
+)
 # app.add_middleware(AuthMiddleware)
 
 app.include_router(handlers.auth_router, prefix="/auth", tags=["auth"])

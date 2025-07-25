@@ -15,15 +15,15 @@ async def mail(token: str):
     return RedirectResponse(url=f"{settings.FRONTEND_URL}/email-confirmed")
 
 
+@client_router.get("/mail/join-to-enterprise/{token}")
+async def mail_join(token: str):
+    await EnterpriseService.join_by_email(token)
+    return RedirectResponse(url=f"{settings.FRONTEND_URL}/success-to-join")
+
+
 @client_router.get("/dadata/{inn}")
 async def get_dadata_suggest(inn: str):
     try:
         return await ClientService.suggest_company_by_inn(inn)
     except ServiceException as e:
         return JSONResponse(content=e.json_message, status_code=403)
-
-
-@client_router.get("/mail/join-to-company/{token}")
-async def mail_join(token: str):
-    await EnterpriseService.join_by_email(token)
-    return RedirectResponse(url=f"{settings.FRONTEND_URL}/invite-success")

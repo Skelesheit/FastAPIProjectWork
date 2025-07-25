@@ -11,6 +11,7 @@ async def create_tokens(inn: str, count: int) -> set[str]:
     """
     tokens = {generate_join_token() for _ in range(count)}
     key = f"tokens:{inn}"
+    await redis.delete(key)
     await redis.sadd(key, *tokens)
     await redis.expire(key, 60 * 60 * 24)  # TTL в 24 часа
     return tokens

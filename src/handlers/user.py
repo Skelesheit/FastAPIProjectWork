@@ -9,7 +9,7 @@ from src.serializers.user import UserLogin, UserRegister
 from src.services import ServiceException
 from src.services.user_service import UserService
 
-user_router = APIRouter(prefix="/user", tags=["user"])
+user_router = APIRouter()
 
 
 @user_router.post("/register", status_code=status.HTTP_201_CREATED)

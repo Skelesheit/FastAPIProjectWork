@@ -1,6 +1,6 @@
 from pydantic import BaseModel, model_validator
 
-from src.db.enums import EnterpriseType
+from src.db.enums import EnterpriseType, MemberRole, MemberStatus
 
 
 class Contact(BaseModel):
@@ -73,9 +73,11 @@ class EnterpriseFillForm(BaseModel):
 class EnterpriseMemberOut(BaseModel):
     id: int
     email: str
+    role: MemberRole
+    status: MemberStatus
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class EnterpriseOut(BaseModel):

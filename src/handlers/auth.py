@@ -35,8 +35,9 @@ async def refresh(request: Request) -> JSONResponse:
     }
     response = JSONResponse(content=message, status_code=200)
     response.headers["Authorization"] = f"{tokens["type"]} {tokens['access_token']}"
+    print('refresh_token:', tokens['refresh_token'])
     response.set_cookie(
-        key='refresh',
+        key='refresh_token',
         value=tokens['refresh_token'],
         httponly=True,
         secure=False,

@@ -27,8 +27,9 @@ class AuthService:
             raise ServiceException("Refresh token expired", 401)
         access_token = token.generate_access_token(token_model.user_id)
         refresh_token = await models.RefreshToken.create_by_user_id(token_model.user_id)
+
         return {
             "access_token": access_token,
-            "refresh_token": refresh_token,
+            "refresh_token": refresh_token.token,
             "type": "Bearer",
         }

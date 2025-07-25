@@ -44,7 +44,7 @@ def validate_token(token: str) -> int | None:
     except jwt.InvalidTokenError:
         raise Exception('Неверный токен')
 
-def generate_join_token(enterprise_id: int, email: str) -> str:
+def generate_join_email_token(enterprise_id: int, email: str) -> str:
     now = datetime.now(timezone.utc)
     payload = {
         'exp': now + timedelta(hours=24),
@@ -57,7 +57,7 @@ def generate_join_token(enterprise_id: int, email: str) -> str:
     token = jwt.encode(payload, secret_key, algorithm='HS256')
     return token
 
-def validate_join_token(token: str) -> [int, str]:
+def validate_join_email_token(token: str) -> [int, str]:
     try:
         secret_key = settings.SECRET_KEY
         payload = jwt.decode(

@@ -15,7 +15,7 @@ class Base(AsyncAttrs, DeclarativeBase):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
     @classmethod
-    async def get_with_session(cls: Type[T], id_: int, session: AsyncSession) -> T | None:
+    async def get_with_session(cls: Type[T], session: AsyncSession, id_: int) -> T | None:
         stmt = select(cls).where(cls.id == id_)
         result = await session.execute(stmt)
         return result.scalar_one_or_none()

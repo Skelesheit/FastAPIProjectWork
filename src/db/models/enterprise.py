@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, String, func, DateTime, UniqueConstraint
+from sqlalchemy import ForeignKey, String, func, DateTime, UniqueConstraint, exists
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
-from sqlalchemy.orm import mapped_column, Mapped, relationship, selectinload
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import mapped_column, Mapped, relationship, selectinload, joinedload
 
 from src.db import get_session
 from src.db.base import Base
@@ -18,7 +19,7 @@ class Enterprise(Base):
     owner_id: Mapped[int] = mapped_column(ForeignKey('user.id'))
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     enterprise_type: Mapped[EnterpriseType] = mapped_column(
-        user_type_postgres=PG_ENUM(
+        PG_ENUM(
             EnterpriseType,
             name='enterprise_type_enum',
             create_type=False),
@@ -51,6 +52,20 @@ class Enterprise(Base):
         cascade='all, delete-orphan'
     )
 
+    async def delete_member(self, member_id: int) -> bool:
+        async with get_session() as session:
+            stmt = (
+                select(EnterpriseMember)
+                .where(EnterpriseMember.id == member_id,
+                       EnterpriseMember.enterprise_id == self.id)
+            )
+            result = await session.execute(stmt)
+            member = result.scalar_one_or_none()
+            if member is None:
+                return False
+            await session.delete(member)
+            return True
+
     @classmethod
     async def get_enterprise_by_owner(cls, user_id: int) -> Enterprise | None:
         async with get_session() as session:
@@ -61,7 +76,21 @@ class Enterprise(Base):
     @classmethod
     async def get_by_inn(cls, inn: str) -> Enterprise | None:
         async with get_session() as session:
-            stmt = select(cls).where(cls.legal_entity.has(inn=inn))
+            stmt = (
+                select(cls)
+                .options(joinedload(cls.legal_entity))
+                .where(cls.legal_entity.has(inn=inn)))
+            result = await session.execute(stmt)
+            return result.scalar_one_or_none()
+
+    @staticmethod
+    async def get_enterprise_inn_by_owner(owner_id: int) -> str:
+        async with get_session() as session:
+            stmt = (
+                select(LegalEntity.inn)
+                .join(Enterprise)
+                .where(Enterprise.owner_id == owner_id)
+            )
             result = await session.execute(stmt)
             return result.scalar_one_or_none()
 
@@ -72,11 +101,12 @@ class Enterprise(Base):
                 select(cls)
                 .where(cls.id == _id)
                 .options(
-                    selectinload(cls.members),
+                    selectinload(cls.members).joinedload(EnterpriseMember.user),
                     selectinload(cls.owner),
                     selectinload(cls.contact),
                     selectinload(cls.individual_profile),
                     selectinload(cls.legal_entity),
+                    selectinload(cls.legal_entity).selectinload(LegalEntity.legal_entity_profile)
                 )
             )
             result = await session.execute(stmt)
@@ -117,8 +147,27 @@ class EnterpriseMember(Base):
     user: Mapped['User'] = relationship(
         'User',
         back_populates='enterprise_member',
-        uselist=False
+        uselist=False,
+        lazy="joined"
     )
+
+    @staticmethod
+    async def has_email_with_session(session: AsyncSession, email: str) -> bool:
+        from src.db.models.users import User
+        stmt = select(
+            exists(
+                select(1)
+                .select_from(EnterpriseMember)
+                .join(User, EnterpriseMember.user_id == User.id)
+                .where(User.email == email)
+            )
+        )
+        result = await session.execute(stmt)
+        return result.scalar()
+
+    @property
+    def email(self) -> str:
+        return self.user.email
 
     def __repr__(self):
         return f"<EnterpriseMember user_id={self.user_id} role={self.role}>"

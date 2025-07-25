@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 from aiosmtplib import send
 
 from config import settings
-from src.auth.token import generate_access_token
+from src.auth.token import generate_join_email_token, generate_access_token
 from src.clients import html
 
 
@@ -38,12 +38,8 @@ async def send_registration_email(user_id: int, email: str) -> None:
 
 
 async def send_invite_email(enterprise_id: int, email: str) -> None:
-    company_token = generate_access_token(enterprise_id)
-    params = urlencode({
-        "token": company_token,
-        "email": email
-    })
-    url = f"{settings.BASE_URL}client/mail-invite?{params}"
+    member_token = generate_join_email_token(enterprise_id, email)
+    url = f"{settings.BASE_URL}client/mail/join-to-enterprise/{member_token}"
     html_content = html.generate_invite_html(url)
     msg = generate_message(email, html.invite_subject, html_content)
     await send_email_message(msg)

@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 
 from sqlalchemy import DateTime, Boolean, ForeignKey, String, func, exists
 from sqlalchemy import update, select, delete
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 from config import settings
@@ -20,6 +21,7 @@ class User(Base):
     password: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[DateTime] = mapped_column(DateTime, default=func.now())
     is_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_member: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     token: Mapped['RefreshToken'] = relationship(
         'RefreshToken',
@@ -82,14 +84,27 @@ class User(Base):
     @classmethod
     async def get_by_email(cls, email: str) -> User | None:
         """
-        Взятие по email
+        Взятие User по email
         :param email: значение
-        :return: User
+        :return: ORM User
         """
         async with get_session() as session:
             stmt = select(cls).where(cls.email == email)
             result = await session.execute(stmt)
             return result.scalar_one_or_none()
+
+    @classmethod
+    async def get_by_email_with_session(cls, session: AsyncSession,  email: str) -> User | None:
+        """
+        Взятие User по email: версия с открытой сессией
+        :param session: асинхронная сессия
+        :param email: email сотрудника
+        :return: User ORM
+        """
+        stmt = select(cls).where(cls.email == email)
+        result = await session.execute(stmt)
+        return result.scalar_one_or_none()
+
 
     @classmethod
     async def get_all_data(cls, id_: int) -> User | None:

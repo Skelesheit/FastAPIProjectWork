@@ -1,0 +1,27 @@
+from src.db import enums
+from src.db import get_session
+from src.db import models
+from src.services import ServiceException
+
+
+class JoinEmployeeWorkflow:
+    @staticmethod
+    async def execute(enterprise_id: int, email: str) -> dict:
+        async with get_session() as session:
+            user = await models.User.get_by_email_with_session(session, email=email)
+            if not user:
+                raise ServiceException("Пользователь ещё не зарегистрирован и не верифицирован", 404)
+            if not user.is_verified:
+                raise ServiceException("Пользователь не верифицирован", 400)
+            if await models.EnterpriseMember.has_email_with_session(session, user.email):
+                raise ServiceException("Пользователь с таким email уже принадлежит компании", 400)
+            await models.EnterpriseMember.create_with_session(
+                session,
+                enterprise_id=enterprise_id,
+                user_id=user.id,
+                role=enums.MemberRole.EMPLOYEE,
+                status=enums.MemberStatus.ACTIVE,
+            )
+            # теперь он тоже member
+            await user.update_with_session(session, is_member=True)
+            return {"message": "Пользователь успешно присоединён к компании"}
