@@ -53,6 +53,7 @@ class Enterprise(Base):
     )
 
     async def delete_member(self, member_id: int) -> bool:
+        from src.db.models import User
         async with get_session() as session:
             stmt = (
                 select(EnterpriseMember)
@@ -63,8 +64,15 @@ class Enterprise(Base):
             member = result.scalar_one_or_none()
             if member is None:
                 return False
+            stmt = select(User).where(User.id == member.user_id)
+            result = await session.execute(stmt)
+            user = result.scalar_one_or_none()
+            if user is None:
+                return False
+            user.is_member = False
+            session.add(user)
             await session.delete(member)
-            return True
+        return True
 
     @classmethod
     async def get_enterprise_by_owner(cls, user_id: int) -> Enterprise | None:
