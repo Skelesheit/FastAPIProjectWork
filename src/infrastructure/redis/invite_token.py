@@ -1,19 +1,20 @@
-from src.auth.token import generate_join_token
+import secrets
+
 from src.infrastructure.redis import redis
 
+key_token = "referral:tokens:{inn}"
 
-async def create_tokens(inn: str, count: int) -> set[str]:
+
+async def create_tokens(inn: str, count: int, nbytes=10) -> set[str]:
     """
     Создаёт токены и кладёт их в Redis
+    :param nbytes: количество символов
     :param inn: ИНН компании (к ней токены и относятся)
     :param count: количество токенов
     :return: None
     """
-    tokens = {generate_join_token() for _ in range(count)}
-    key = f"tokens:{inn}"
-    await redis.delete(key)
-    await redis.sadd(key, *tokens)
-    await redis.expire(key, 60 * 60 * 24)  # TTL в 24 часа
+    tokens = {secrets.token_urlsafe(nbytes) for _ in range(count)}
+    await redis.set(key_token.format(inn=inn), *tokens, ex=60 * 60 * 24)
     return tokens
 
 
@@ -25,12 +26,9 @@ async def validate_token(inn: str, token: str) -> bool:
     :param token: сам токен (его значение)
     :return: bool - является ли токен валидным или нет
     """
-    key = f"tokens:{inn}"
-    exists = await redis.sismember(key, token)
-    if not exists:
+    if not await redis.sismember(key_token.format(inn=inn), token):
         return False
-    await redis.srem(key, token)
-    return True
+    return await redis.srem(key_token.format(inn=inn), token)
 
 
 async def get_tokens(inn: str) -> set[str]:
@@ -39,4 +37,4 @@ async def get_tokens(inn: str) -> set[str]:
     :param inn: ИНН компании, к которой привязаны токены
     :return: список доступных токенов компании
     """
-    return await redis.smembers(f"tokens:{inn}")
+    return await redis.smembers(key_token.format(inn=inn))

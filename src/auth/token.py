@@ -5,9 +5,11 @@ from datetime import datetime, timedelta, timezone
 import jwt
 
 from config import settings
+from src.auth.exceptions import InvalidTokenType
 
 
 def generate_access_token(_id: int) -> str:
+    # utc не должно быть!
     now = datetime.now(timezone.utc)
     payload = {
         'exp': now + timedelta(minutes=settings.EXPIRES_ACCESS_TOKEN_MINUTES),
@@ -23,26 +25,22 @@ def generate_access_token(_id: int) -> str:
 
 
 def validate_token(token: str) -> int | None:
-    try:
-        secret_key = settings.SECRET_KEY
-        print("secret on validate:", secret_key)
-        print(f"settings.secret_key = {settings.SECRET_KEY!r}")
-        print("token by validate:", token)
-        print(f"Token raw: {repr(token)}")
-        payload = jwt.decode(
-            token,
-            settings.SECRET_KEY,
-            algorithms=["HS256"],
-            options={"require": ["exp", "iat", "sub", "type"]},
-            leeway=10
-        )
-        if payload.get('type') != 'access':
-            raise Exception('Неверный тип токена')
-        return int(payload['sub'])
-    except jwt.ExpiredSignatureError:
-        raise Exception('Токен истёк')
-    except jwt.InvalidTokenError:
-        raise Exception('Неверный токен')
+    secret_key = settings.SECRET_KEY
+    print("secret on validate:", secret_key)
+    print(f"settings.secret_key = {settings.SECRET_KEY!r}")
+    print("token by validate:", token)
+    print(f"Token raw: {repr(token)}")
+    payload = jwt.decode(
+        token,
+        settings.SECRET_KEY,
+        algorithms=["HS256"],
+        options={"require": ["exp", "iat", "sub", "type"]},
+        leeway=10
+    )
+    if payload.get('type') != 'access':
+        raise InvalidTokenType()
+    return int(payload['sub'])
+
 
 def generate_join_email_token(enterprise_id: int, email: str) -> str:
     now = datetime.now(timezone.utc)
@@ -57,23 +55,18 @@ def generate_join_email_token(enterprise_id: int, email: str) -> str:
     token = jwt.encode(payload, secret_key, algorithm='HS256')
     return token
 
+
 def validate_join_email_token(token: str) -> [int, str]:
-    try:
-        secret_key = settings.SECRET_KEY
-        payload = jwt.decode(
-            token,
-            settings.SECRET_KEY,
-            algorithms=["HS256"],
-            options={"require": ["exp", "iat", "id", "email", "type"]},
-            leeway=10
-        )
-        if payload.get('type') != 'join':
-            raise Exception('Неверный тип токена')
-        return int(payload['id']), payload['email']
-    except jwt.ExpiredSignatureError:
-        raise Exception('Токен истёк')
-    except jwt.InvalidTokenError:
-        raise Exception('Неверный токен')
+    payload = jwt.decode(
+        token,
+        settings.SECRET_KEY,
+        algorithms=["HS256"],
+        options={"require": ["exp", "iat", "id", "email", "type"]},
+        leeway=10
+    )
+    if payload.get('type') != 'join':
+        raise InvalidTokenType()
+    return int(payload['id']), payload['email']
 
 
 def generate_join_token(length: int = 12) -> str:

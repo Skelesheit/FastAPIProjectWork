@@ -1,0 +1,14 @@
+{
+    "name": "Фреза",
+    "mark": "Ф-456",
+    "gost": "ГОСТ 456-78",
+    "machine_id": 7,
+    "enterprise_id": 3,
+    "params": {
+      "K_H_D": 45,
+      "alpha_B_d": 30,
+      "L": 150,
+      "I_max_cut": 12,
+      "S": 3.2
+    }
+  }

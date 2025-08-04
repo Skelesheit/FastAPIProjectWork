@@ -1,6 +1,5 @@
 from src.auth.token import validate_join_email_token
 from src.clients.mail import send_invite_email
-from src.db.models import User
 from src.db.models.enterprise import Enterprise, EnterpriseMember
 from src.infrastructure.redis import invite_token
 from src.serializers.enterprise import EnterpriseFillForm, EnterpriseOut
@@ -12,25 +11,25 @@ from src.use_cases.join_employee_workflow import JoinEmployeeWorkflow
 
 class EnterpriseService:
     @staticmethod
-    async def create(dto: EnterpriseFillForm, user_id: int) -> dict:
+    async def create(dto: EnterpriseFillForm, user_id: int) -> Enterprise:
         """
         Создание компании с полным заполнением всех полей
         :param dto: данные с сериализатора, все нужные формы для создания
         :param user_id: id пользователя, будет owner_id
         :return: dict
         """
-        await FillDataWorkflow.execute(dto, user_id)
-        return {"message": "Пользователь успешно заполнил форму о себе"}
+        #TODO: Надо убрать is_member - и всё заменить на поиск в EnterpriseMember
+        return await FillDataWorkflow.execute(dto, user_id)
 
     @staticmethod
     async def get(enterprise_id: int) -> EnterpriseOut:
         enterprise = await Enterprise.get_all_data(enterprise_id)
         if not enterprise:
-            raise ServiceException("Нет компании", status=404)
+            raise ServiceException("Нет компании", 404)
         return EnterpriseOut.model_validate(enterprise)
 
     @staticmethod
-    async def join_by_token(dto: JoinTokenIn, user_id: int) -> bool:
+    async def join_by_token(dto: JoinTokenIn, user_id: int) -> EnterpriseMember:
         """
         Присоединение пользователя по токену
         :param dto: dto с токеном и ИНН
@@ -38,11 +37,14 @@ class EnterpriseService:
         :return: сообщение dict
         """
         enterprise: Enterprise = await Enterprise.get_by_inn(dto.inn)
-        is_valid = await invite_token.validate_token(enterprise.legal_entity.inn, dto.token)
-        if not is_valid:
+        if not enterprise:
+            raise ServiceException("not found enterprise", 404)
+        # enterprise проверять что это ИП или юр лицо (НЕ ФИЗ ЛИЦО) - говорить что ты физ лицо ты так не можешь
+        # проверка на наличие ИНН (что оно есть) - выкидывать ошибку (permission error типа : you are psihycal nopt company)
+
+        if not await invite_token.validate_token(enterprise.legal_entity.inn, dto.token):
             raise ServiceException(message="Invalid token", status_code=404)
-        await EnterpriseMember.create(enterprise_id=enterprise.id, user_id=user_id)
-        return True
+        return await EnterpriseMember.create(enterprise_id=enterprise.id, user_id=user_id)
 
     @staticmethod
     async def create_invite_token(inn: str, count: int) -> set[str]:
@@ -86,6 +88,4 @@ class EnterpriseService:
         :param token: токен с email сотрудника и id компании
         :return: dict - сообщение
         """
-        enterprise_id, email = validate_join_email_token(token)
-        print(enterprise_id, email)
-        return await JoinEmployeeWorkflow.execute(enterprise_id, email)
+        return await JoinEmployeeWorkflow.execute(validate_join_email_token(token))

@@ -6,6 +6,11 @@ from src import handlers
 
 # from src.auth import AuthMiddleware
 
+"""
+УБРАТЬ ВСЕ ПРИНТЫ - ЮЗАТЬ ЛОГГЕР!
+ПРОВЕРИТЬ STATUS CODE надо поправить!
+"""
+
 app = FastAPI()
 
 app.add_middleware(
@@ -17,13 +22,12 @@ app.add_middleware(
     expose_headers=["*"]
 )
 # app.add_middleware(AuthMiddleware)
-
 app.include_router(handlers.auth_router, prefix="/auth", tags=["auth"])
 app.include_router(handlers.user_router, prefix="/user", tags=["user"])
 app.include_router(handlers.client_router, prefix="/client", tags=["client"])
 app.include_router(handlers.enterprise_router, prefix="/enterprise", tags=["enterprise"])
 
-
+app.include_router(handlers.resource_router, prefix="/resources",)
 @app.get('/')
 def swagger():
     return RedirectResponse(url="/docs")

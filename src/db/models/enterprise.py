@@ -52,6 +52,70 @@ class Enterprise(Base):
         cascade='all, delete-orphan'
     )
 
+    material_categories: Mapped[list['MaterialCategory']] = relationship(
+        'MaterialCategory',
+        back_populates='enterprise',
+        cascade='all, delete-orphan'
+    )
+    materials: Mapped[list['Material']] = relationship(
+        'Material',
+        back_populates='enterprise',
+        cascade='all, delete-orphan'
+    )
+    gosts: Mapped[list['Gost']] = relationship(
+        'Gost',
+        back_populates='enterprise',
+        cascade='all, delete-orphan'
+    )
+    assortment_types: Mapped[list['AssortmentType']] = relationship(
+        'AssortmentType',
+        back_populates='enterprise',
+        cascade='all, delete-orphan'
+    )
+    gost_assortments: Mapped[list['GostAssortment']] = relationship(
+        'GostAssortment',
+        back_populates='enterprise',
+        cascade='all, delete-orphan'
+    )
+    assortments: Mapped[list['Assortment']] = relationship(
+        'Assortment',
+        back_populates='enterprise',
+        cascade='all, delete-orphan'
+    )
+
+    operation_types: Mapped[list['OperationType']] = relationship(
+        'OperationType',
+        back_populates='enterprise',
+        cascade='all, delete-orphan'
+    )
+    methods: Mapped[list['Method']] = relationship(
+        'Method',
+        back_populates='enterprise',
+        cascade='all, delete-orphan'
+    )
+    machine_types: Mapped[list['MachineType']] = relationship(
+        'MachineType',
+        back_populates='enterprise',
+        cascade='all, delete-orphan'
+    )
+    machines: Mapped[list['Machine']] = relationship(
+        'Machine',
+        back_populates='enterprise',
+        cascade='all, delete-orphan'
+    )
+    material_categories: Mapped['MaterialCategory'] = relationship(
+        'MaterialCategory',
+        back_populates='enterprise',
+    )
+    toolings: Mapped[list['Tooling']] = relationship(
+        'Tooling',
+        back_populates='enterprise'
+    )
+    tools: Mapped[list['Tool']] = relationship(
+        'Tool',
+        back_populates='enterprise'
+    )
+
     async def delete_member(self, member_id: int) -> bool:
         from src.db.models import User
         async with get_session() as session:
@@ -172,6 +236,16 @@ class EnterpriseMember(Base):
         )
         result = await session.execute(stmt)
         return result.scalar()
+
+    @classmethod
+    async def get_enterprise_id_by_user_id(cls, user_id: int) -> int | None:
+        async with get_session() as session:
+            stmt = (
+                select(EnterpriseMember.enterprise_id)
+                .where(EnterpriseMember.user_id == user_id)
+            )
+            result = await session.execute(stmt)
+        return result.scalar_one_or_none()
 
     @property
     def email(self) -> str:

@@ -1,0 +1,1 @@
+from src.handlers.resources.resources import router as resource_router

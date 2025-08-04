@@ -8,7 +8,7 @@ from src.services import ServiceException
 
 class FillDataWorkflow:
     @staticmethod
-    async def execute(dto: EnterpriseFillForm, user_id: int) -> dict:
+    async def execute(dto: EnterpriseFillForm, user_id: int) -> models.Enterprise:
         async with get_session() as session:
             # ну да, надо получить юзера
             user = await models.User.get_with_session(session, user_id)
@@ -17,19 +17,20 @@ class FillDataWorkflow:
             # основа всего - создание компании
             enterprise = await models.Enterprise.create_with_session(
                 session,
-                owner_id=user_id,
+                owner_id=user.id,
                 name=dto.name,
                 enterprise_type=dto.enterprise_type
             )
             # создаём привязку юзера к компании
             await models.EnterpriseMember.create_with_session(
                 session,
-                user_id=user_id,
+                user_id=user.id,
                 enterprise_id=enterprise.id,
                 role=enums.MemberRole.OWNER,
                 status=enums.MemberStatus.ACTIVE,
             )
             # ставим юзеру поле, что он теперь member
+            # TODO: убрать is_member, теперь можно просто оставлять данные в EnterpriseMember
             await user.update_with_session(session, is_member=True)
             # создание контакта
             await models.Contact.create_with_session(
@@ -71,4 +72,4 @@ class FillDataWorkflow:
                     )
                 case _:
                     raise ServiceException("Неизвестный тип пользователя", 403)
-        return {"message": "Профиль успешно заполнен"}
+        return enterprise

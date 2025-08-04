@@ -44,9 +44,8 @@ class User(Base):
         :param password: пароль
         :return: новый пользователь в системе User
         """
-        password_hash = hash_password(password)
         async with get_session() as session:
-            user = User(email=email, password=password_hash)
+            user = User(email=email, password=hash_password(password))
             session.add(user)
             await session.flush()
             await session.refresh(user)
@@ -176,7 +175,7 @@ class RefreshToken(Base):
             await session.execute(stmt)
 
     @classmethod
-    async def create_by_user_id(cls, user_id: int) -> RefreshToken:
+    async def create(cls, user_id: int) -> RefreshToken:
         """
         Удаляет старый токен и создаёт новый
         :param user_id: id Пользователя, владельца токена

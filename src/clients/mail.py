@@ -1,5 +1,4 @@
 from email.message import EmailMessage
-from urllib.parse import urlencode
 
 from aiosmtplib import send
 
@@ -20,12 +19,12 @@ async def send_email_message(msg: EmailMessage) -> None:
     )
 
 
-def generate_message(email: str, subject: str, body: str) -> EmailMessage:
+def generate_message(email: str, subject: str, body: str, subtype="html") -> EmailMessage:
     msg = EmailMessage()
     msg["From"] = settings.MAIL_USERNAME
     msg["To"] = email
     msg["Subject"] = subject
-    msg.set_content(body, subtype="html")
+    msg.set_content(body, subtype=subtype)
     return msg
 
 

@@ -1,0 +1,11 @@
+{
+  "category_id": 1,
+  "enterprise_id": 3,
+  "params": {
+    "brand": "Сталь 3",
+    "dense": 7.85,
+    "hardness": 120,
+    "tear_resistance": 350,
+    "elongation": 20
+  }
+}

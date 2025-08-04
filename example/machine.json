@@ -1,0 +1,13 @@
+{
+  "name": "6К82",
+  "machine_type_id": 2,
+  "count": 3,
+  "enterprise_id": 1,
+  "params": {
+    "X": 500,
+    "Y": 300,
+    "Z": 200,
+    "H": 150,
+    "D": 100
+  }
+}

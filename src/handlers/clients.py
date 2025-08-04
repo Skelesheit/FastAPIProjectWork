@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter
 from starlette.responses import RedirectResponse, JSONResponse
 
 from config import settings
@@ -6,7 +6,6 @@ from src.services.client_service import ClientService, ServiceException
 from src.services.enterprise_service import EnterpriseService
 
 client_router = APIRouter()
-
 
 @client_router.get("/mail/{token}")
 async def mail(token: str):
@@ -23,6 +22,7 @@ async def mail_join(token: str):
 
 @client_router.get("/dadata/{inn}")
 async def get_dadata_suggest(inn: str):
+    # сериализируем данные
     try:
         return await ClientService.suggest_company_by_inn(inn)
     except ServiceException as e:

@@ -30,11 +30,13 @@ async def join_to_company(dto: JoinTokenIn, user_id: int = Depends(get_current_u
 async def revoke(member_id: int, enterprise: Enterprise = Depends(get_enterprise_by_owner)):
     if await EnterpriseService.revoke_member(enterprise, member_id):
         return {"message": "Сотрудник отозван с вашей компании"}
-    return {"message": "Сотрудник не найден или не принадлежит вашей компании"}
+    # raise HTTPEXCEPTION - почитать доку возможно по fastapi.
+    return {"message": "Сотрудник не найден или не принадлежит вашей компании"}, 200
 
 
 @enterprise_router.get('/invite-by-email')
 async def invite_by_email(email: str, enterprise: Enterprise = Depends(get_enterprise_by_owner)):
+    # try catch - обрабать Exception - HTTPException - то есть что (контент ошибки)
     return await EnterpriseService.invite_by_email(enterprise, email)
 
 
