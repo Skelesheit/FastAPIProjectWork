@@ -14,7 +14,15 @@ async def create_tokens(inn: str, count: int, nbytes=10) -> set[str]:
     :return: None
     """
     tokens = {secrets.token_urlsafe(nbytes) for _ in range(count)}
-    await redis.set(key_token.format(inn=inn), *tokens, ex=60 * 60 * 24)
+    if not tokens:
+        return set()
+    key = key_token.format(inn=inn)
+    pipe = redis.pipeline(transaction=True)
+    redis.set()
+    pipe.delete(key)
+    pipe.sadd(key, *tokens)
+    pipe.expire(key, 24 * 60 * 60)  # 24h
+    await pipe.execute()
     return tokens
 
 
@@ -26,9 +34,7 @@ async def validate_token(inn: str, token: str) -> bool:
     :param token: сам токен (его значение)
     :return: bool - является ли токен валидным или нет
     """
-    if not await redis.sismember(key_token.format(inn=inn), token):
-        return False
-    return await redis.srem(key_token.format(inn=inn), token)
+    return await redis.srem(key_token.format(inn=inn), token) == 1
 
 
 async def get_tokens(inn: str) -> set[str]:

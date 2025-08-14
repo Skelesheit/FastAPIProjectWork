@@ -1,6 +1,7 @@
 import secrets
 import string
 from datetime import datetime, timedelta, timezone
+from typing import TypedDict
 
 import jwt
 
@@ -18,18 +19,11 @@ def generate_access_token(_id: int) -> str:
         'type': 'access'
     }
     secret_key = settings.SECRET_KEY
-    print("secret on generate:", secret_key)
     token = jwt.encode(payload, secret_key, algorithm='HS256')
-    print("token by generate:", token)
     return token
 
 
 def validate_token(token: str) -> int | None:
-    secret_key = settings.SECRET_KEY
-    print("secret on validate:", secret_key)
-    print(f"settings.secret_key = {settings.SECRET_KEY!r}")
-    print("token by validate:", token)
-    print(f"Token raw: {repr(token)}")
     payload = jwt.decode(
         token,
         settings.SECRET_KEY,
@@ -56,7 +50,12 @@ def generate_join_email_token(enterprise_id: int, email: str) -> str:
     return token
 
 
-def validate_join_email_token(token: str) -> [int, str]:
+class JoinArgs(TypedDict):
+    enterprise_id: int
+    email: str
+
+
+def validate_join_email_token(token: str) -> JoinArgs:
     payload = jwt.decode(
         token,
         settings.SECRET_KEY,
@@ -66,7 +65,10 @@ def validate_join_email_token(token: str) -> [int, str]:
     )
     if payload.get('type') != 'join':
         raise InvalidTokenType()
-    return int(payload['id']), payload['email']
+    return {
+        "enterprise_id": int(payload["id"]),
+        "email": payload["email"]
+    }
 
 
 def generate_join_token(length: int = 12) -> str:

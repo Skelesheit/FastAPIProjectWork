@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     # Redis
     REDIS_PORT: int
     REDIS_PASSWORD: str
+    REDIS_URL: str
 
     # База данных
     model_config = SettingsConfigDict(

@@ -1,9 +1,11 @@
-from src.db import get_session
-from src.db import models
-from src.db.enums import EnterpriseType
-from src.db import enums
+from src.db import get_session, models
+from src.db.enums import EnterpriseType, MemberRole, MemberStatus
 from src.serializers.enterprise import EnterpriseFillForm
-from src.services import ServiceException
+from src.services.errors import (
+    UserAlreadyInEnterprise,
+    ValidationFailed,
+    UnknownUserType
+)
 
 
 class FillDataWorkflow:
@@ -13,7 +15,7 @@ class FillDataWorkflow:
             # ну да, надо получить юзера
             user = await models.User.get_with_session(session, user_id)
             if user.is_member:
-                raise ServiceException("Компания уже создана или пользователь является сотрудником компании", 400)
+                raise UserAlreadyInEnterprise
             # основа всего - создание компании
             enterprise = await models.Enterprise.create_with_session(
                 session,
@@ -26,8 +28,8 @@ class FillDataWorkflow:
                 session,
                 user_id=user.id,
                 enterprise_id=enterprise.id,
-                role=enums.MemberRole.OWNER,
-                status=enums.MemberStatus.ACTIVE,
+                role=MemberRole.OWNER,
+                status=MemberStatus.ACTIVE,
             )
             # ставим юзеру поле, что он теперь member
             # TODO: убрать is_member, теперь можно просто оставлять данные в EnterpriseMember
@@ -57,9 +59,9 @@ class FillDataWorkflow:
                     legal_entity_profile = legal_entity.legal_entity_profile
                     legal_entity.legal_entity_profile = None
                     if legal_entity is None:
-                        raise ServiceException("Отсутствует общие данные для (ИП юр. лицо)", 400)
+                        raise ValidationFailed(message="not provided legal entity")
                     if legal_entity_profile is None:
-                        raise ServiceException("Отсутствуют данные для юр лица", 400)
+                        raise ValidationFailed(message="not provided legal entity profile")
                     legal = await models.LegalEntity.create_with_session(
                         session=session,
                         enterprise_id=enterprise.id,
@@ -71,5 +73,5 @@ class FillDataWorkflow:
                         **legal_entity_profile.model_dump()
                     )
                 case _:
-                    raise ServiceException("Неизвестный тип пользователя", 403)
+                    raise UnknownUserType()
         return enterprise

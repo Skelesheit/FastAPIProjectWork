@@ -1,48 +1,54 @@
 from config import settings
 from src.auth import token
 from src.clients import captcha, mail
-from src.clients.mail import send_email_message
 from src.db import models
-from src.serializers.user import UserRegister, UserLogin, UserOut
-from src.services import ServiceException
+from src.serializers.user import (
+    UserRegister,
+    UserLogin,
+    LoginResponse,
+    UserOut,
+)
+from src.services.errors import (
+    CaptchaNotVerified,
+    NotUniqueEmail,
+    InvalidCredentials,
+    UserNotVerified
+)
 
 
 class UserService:
     @staticmethod
-    async def register(dto: UserRegister) -> models.User:
-        if not await captcha.verify_yandex_captcha(dto.password, ip='127.0.0.0'):
-            raise ServiceException("Капча не пройдёна", 401)
+    async def register(dto: UserRegister) -> UserOut:
+        if not await captcha.verify_yandex_captcha(dto.captcha, ip='127.0.0.0'):
+            raise CaptchaNotVerified()
         if await models.User.has_email(dto.email):
-            raise ServiceException("Пользователь с таким email уже существует", 401)
+            raise NotUniqueEmail()
         user = await models.User.create(email=dto.email, password=dto.password)
-        await UserService.send_registration_email(user)
-        return user
+        mail.send_registration_email(user.id, user.email)
+        return UserOut.model_validate(user)
 
     @staticmethod
-    async def send_registration_email(user: models.User) -> None:
-        """
-        Лучше занести в отдельный слой или функцию!
-        :return: None
-        """
-        await mail.send_registration_email(user.id, user.email)
-
-    @staticmethod
-    async def login(dto: UserLogin) -> dict:
-        invalid_exception = ServiceException("Неправильно введён логин или пароль", 401)
+    async def login(dto: UserLogin) -> LoginResponse:
         user = await models.User.get_by_email(dto.email)
         if not user:
-            raise invalid_exception
+            raise InvalidCredentials()
         is_valid = user.check_password(dto.password)
         if not is_valid:
-            raise invalid_exception
+            raise InvalidCredentials()
         if not user.is_verified:
-            raise ServiceException("Нет верификации email", 400)
+            # заново отправим письмо, потом ошибку
+            mail.send_registration_email(user.id, user.email)
+            raise UserNotVerified()
         refresh_token = await models.RefreshToken.create(user.id)
         access_token = token.generate_access_token(user.id)
-        return {"access_token": access_token, "refresh_token": refresh_token.token, "type": "Bearer",
-                'expires_in': 60 * settings.EXPIRES_ACCESS_TOKEN_MINUTES}
+        return LoginResponse(
+            access_token=access_token,
+            refresh_token=refresh_token.token,
+            type="Bearer",
+            expires_in=60 * settings.EXPIRES_ACCESS_TOKEN_MINUTES
+        )
 
     @staticmethod
-    async def logout(user_id: int) -> dict:
+    async def logout(user_id: int) -> bool:
         await models.RefreshToken.delete_by_user_id(user_id)
-        return {"message": "Пользователь успешно вышел"}
+        return True

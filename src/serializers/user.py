@@ -21,3 +21,10 @@ class UserOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class LoginResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    type: str = "Bearer"
+    expires_in: int
