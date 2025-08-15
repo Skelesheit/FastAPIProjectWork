@@ -28,8 +28,8 @@ async def login(dto: UserLogin) -> JSONResponse:
         key="refresh_token",
         value=result["refresh_token"],
         httponly=True,
-        secure=False,  # True — если HTTPS
-        samesite="lax",
+        secure=False,  # только локально! Без HTTPS
+        samesite="lax",  # локально можно lax
         path="/",
         max_age=60 * 60 * 24 * settings.EXPIRES_REFRESH_TOKEN_DAYS
     )

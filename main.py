@@ -11,14 +11,19 @@ from src.logging.access import access_middleware
 app = FastAPI()
 
 # MIDDLEWARE - CORS
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # адрес фронта
+    allow_origins=[
+        "http://localhost:5174", # дев
+        "https://your-frontend.com"  # прод
+    ],  # адрес фронта
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"]
 )
+
 # MIDDLEWARE - ACCESS LOGGER
 app.middleware("http")(access_middleware)
 

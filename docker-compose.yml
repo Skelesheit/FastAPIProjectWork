@@ -61,6 +61,15 @@ services:
     networks:
       - app-network
 
+  worker:
+    build: .
+    env_file: .env
+    command: bash -lc "celery -A src.infrastructure.celery.main:celery_app worker -Q mail -l info"
+    depends_on: [ redis, backend ]
+
+
+
+
 
 volumes:
   pg-data:
