@@ -25,34 +25,11 @@ class MaterialCategoryCreate(MaterialCategoryBase):
 
 class MaterialCategoryOut(MaterialCategoryBase, ORMBaseModel):
     id: int
+    is_general: bool
 
 
-# --- Material ---
-class MaterialBase(BaseModel):
-    category_id: int
-    brand: str
-    dense: float
-    hardness: float
-    tear_resistance: float
-    elongation: float
 
 
-class MaterialCreate(MaterialBase):
-    pass
-
-
-class MaterialUpdate(BaseModel):
-    category_id: int | None = None
-    brand: str | None = None
-    dense: float | None = None
-    hardness: float | None = None
-    tear_resistance: float | None = None
-    elongation: float | None = None
-
-
-class MaterialOut(MaterialBase, ORMBaseModel):
-    id: int
-    category: MaterialCategoryOut | None = None
 
 
 # --- OperationType ---
@@ -231,11 +208,13 @@ class GostUpdate(BaseModel):
 
 class GostOut(GostBase, ORMBaseModel):
     id: int
+    is_general: bool
 
 
 # --- AssortmentType ---
 class AssortmentTypeBase(BaseModel):
     name: str
+    gost_id: int
 
 
 class AssortmentTypeCreate(AssortmentTypeBase):
@@ -244,10 +223,12 @@ class AssortmentTypeCreate(AssortmentTypeBase):
 
 class AssortmentTypeUpdate(BaseModel):
     name: str | None = None
+    gost_id: int | None = None
 
 
 class AssortmentTypeOut(AssortmentTypeBase, ORMBaseModel):
     id: int
+    is_general: bool
 
 
 # --- GostAssortment ---
@@ -271,6 +252,7 @@ class GostAssortmentOut(GostAssortmentBase, ORMBaseModel):
     gost: GostOut
     assortment_type: AssortmentTypeOut
 
+
 class GostAssortmentBatchCreate(BaseModel):
     assortment_type_id: int
     gosts: list[int]  # foreign gost ids
@@ -283,6 +265,56 @@ class GostAssortmentBatchOut(BaseModel):
     gosts: list[int]
     enterprise_id: int
 
+
+# --- Material ---
+class MaterialBase(BaseModel):
+    brand: str
+    B_D: float
+    height: float
+    strength: float
+    length: float
+
+    dense: float
+    hardness: float
+    tear_resistance: float
+    elongation: float
+
+    comment: str | None = None
+    comment_en: str | None = None
+
+    material_category_id: int
+    assortment_type_id: int
+
+
+class MaterialCreate(MaterialBase):
+    pass
+
+
+class MaterialUpdate(BaseModel):
+    brand: str | None = None
+    B_D: float | None = None
+    height: float | None = None
+    strength: float | None = None
+    length: float | None = None
+
+    dense: float | None = None
+    hardness: float | None = None
+    tear_resistance: float | None = None
+    elongation: float | None = None
+
+    comment: str | None = None
+    comment_en: str | None = None
+
+    material_category_id: int | None = None
+    assortment_type_id: int | None = None
+
+
+class MaterialOut(MaterialBase, ORMBaseModel):
+    id: int
+    category: MaterialCategoryOut | None = None
+    assortment_type: AssortmentTypeOut | None = None
+
+
 # --- Assortment ---
 class AssortmentBase(BaseModel):
     gost_material_id: int
@@ -291,6 +323,11 @@ class AssortmentBase(BaseModel):
     height: float
     strength: float
     length: float
+
+    dense: float
+    hardness: float
+    tear_resistance: float
+    elongation: float
 
 
 class AssortmentCreate(AssortmentBase):

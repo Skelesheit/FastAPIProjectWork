@@ -1,5 +1,6 @@
 from src.db.models import MaterialCategory
 from src.serializers.resources import MaterialCategoryCreate, MaterialCategoryUpdate, MaterialCategoryOut
+from src.services.errors import NotFound
 
 
 # категория материала
@@ -11,12 +12,15 @@ class MaterialCategoryService:
         return [MaterialCategoryOut.model_validate(obj) for obj in objs]
 
     @classmethod
-    async def create(cls, data: MaterialCategoryCreate, enterprise_id: int) -> MaterialCategory:
-        return await MaterialCategory.create_by_enterprise(enterprise_id, **data.model_dump())
+    async def create(cls, data: MaterialCategoryCreate, enterprise_id: int) -> MaterialCategoryOut:
+        obj =  await MaterialCategory.create_by_enterprise(enterprise_id, **data.model_dump())
+        return MaterialCategoryOut.model_validate(obj)
 
     @classmethod
     async def get(cls, category_id: int, enterprise_id: int) -> MaterialCategoryOut:
         obj = await MaterialCategory.get_by_enterprise(category_id, enterprise_id)
+        if obj is None:
+            raise NotFound()
         return MaterialCategoryOut.model_validate(obj)
 
     @classmethod
@@ -29,5 +33,5 @@ class MaterialCategoryService:
         return MaterialCategoryOut.model_validate(obj)
 
     @classmethod
-    async def delete(cls, category_id: int, enterprise_id: int) -> None:
-        obj = await MaterialCategory.delete_by_enterprise(category_id, enterprise_id)
+    async def delete(cls, category_id: int, enterprise_id: int) -> bool:
+        return await MaterialCategory.delete_by_enterprise(category_id, enterprise_id)

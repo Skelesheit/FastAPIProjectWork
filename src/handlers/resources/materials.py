@@ -12,36 +12,36 @@ router = APIRouter(
 )
 
 
-@router.get('', response_model=List[MaterialOut])
+@router.get('')
 async def list_materials(
         enterprise_id: int = Depends(get_enterprise_by_user_id),
         brand: str | None = Query(None),
-):
+) -> list[MaterialOut]:
     return await MaterialService.list(enterprise_id=enterprise_id, brand=brand)
 
 
-@router.post('', response_model=MaterialOut)
+@router.post('')
 async def create_material(
         payload: MaterialCreate,
         enterprise_id: int = Depends(get_enterprise_by_user_id),
-):
+) -> MaterialOut:
     return await MaterialService.create(enterprise_id=enterprise_id, **payload.model_dump())
 
 
-@router.get('/{material_id}', response_model=MaterialOut)
+@router.get('/{material_id}')
 async def get_material_by_id(
         material_id: int,
         enterprise_id: int = Depends(get_enterprise_by_user_id),
-):
+) -> MaterialOut:
     return await MaterialService.get(material_id, enterprise_id)
 
 
-@router.put('/{material_id}', response_model=MaterialOut)
+@router.put('/{material_id}')
 async def update_material(
         material_id: int,
         payload: MaterialUpdate,
         enterprise_id: int = Depends(get_enterprise_by_user_id),
-):
+) -> MaterialOut:
     return await MaterialService.update(material_id, enterprise_id, **payload.model_dump())
 
 

@@ -1,6 +1,6 @@
 from enum import Enum
 
-from sqlalchemy.dialects.postgresql import ENUM
+from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 
 
 class OperationType(str, Enum):
@@ -37,4 +37,22 @@ class MemberStatus(str, Enum):
     REMOVED = "removed"  # Был удалён админом/владельцем
 
 
-user_type_postgres = ENUM('ИП', 'Юр. лицо', 'Физ. лицо', name='user_type_enum', create_type=False)
+metal_type_enum = PG_ENUM(
+    MetalType, name="metal_type_enum",
+    create_type=False, reuse_existing=True
+)
+
+enterprise_type_enum = PG_ENUM(
+    EnterpriseType, name="enterprise_type_enum",
+    create_type=False, reuse_existing=True
+)
+
+member_role_enum = PG_ENUM(
+    MemberRole, name="member_role_enum",
+    create_type=False, reuse_existing=True
+)
+
+member_status_enum = PG_ENUM(
+    MemberStatus, name="member_status_enum",
+    create_type=False, reuse_existing=True
+)

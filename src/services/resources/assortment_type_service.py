@@ -1,12 +1,24 @@
-from src.db.models import AssortmentType
+from typing import List
+
+from sqlalchemy.orm import selectinload, Load
+
+
+from src.db.models import AssortmentType, Gost
 from src.serializers.resources import AssortmentTypeCreate, AssortmentTypeUpdate, AssortmentTypeOut
 
 
 class AssortmentTypeService:
 
     @classmethod
+    def get_options(cls) -> list:
+        return [selectinload(Gost)]
+
+    @classmethod
     async def list(cls, enterprise_id: int, **kwargs) -> list[AssortmentTypeOut]:
-        objs = await AssortmentType.list_by_enterprise(enterprise_id, **kwargs)
+        objs = await AssortmentType.list_by_enterprise(
+            enterprise_id,
+            options=cls.get_options(),
+            **kwargs)
         return [AssortmentTypeOut.model_validate(obj) for obj in objs]
 
     @classmethod
@@ -16,7 +28,11 @@ class AssortmentTypeService:
 
     @classmethod
     async def get(cls, type_id: int, enterprise_id: int) -> AssortmentTypeOut:
-        obj = await AssortmentType.get_by_enterprise(type_id, enterprise_id)
+        obj = await AssortmentType.get_by_enterprise(
+            type_id,
+            enterprise_id,
+            options = cls.get_options(),
+        )
         return AssortmentTypeOut.model_validate(obj)
 
     @classmethod

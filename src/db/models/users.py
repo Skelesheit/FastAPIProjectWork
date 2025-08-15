@@ -19,7 +19,7 @@ class User(Base):
 
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String, nullable=False)
-    created_at: Mapped[DateTime] = mapped_column(DateTime, default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     is_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_member: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 

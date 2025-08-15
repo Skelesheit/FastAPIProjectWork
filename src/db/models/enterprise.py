@@ -4,13 +4,16 @@ from datetime import datetime
 
 from sqlalchemy import ForeignKey, String, func, DateTime, UniqueConstraint, exists
 from sqlalchemy import select
-from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import mapped_column, Mapped, relationship, selectinload, joinedload
 
 from src.db import get_session
 from src.db.base import Base
-from src.db.enums import MemberRole, MemberStatus, EnterpriseType
+from src.db.enums import (
+    MemberStatus, member_status_enum,
+    MemberRole, member_role_enum,
+    EnterpriseType, enterprise_type_enum,
+)
 
 
 class Enterprise(Base):
@@ -18,12 +21,7 @@ class Enterprise(Base):
 
     owner_id: Mapped[int] = mapped_column(ForeignKey('user.id'))
     name: Mapped[str] = mapped_column(String(200), nullable=False)
-    enterprise_type: Mapped[EnterpriseType] = mapped_column(
-        PG_ENUM(
-            EnterpriseType,
-            name='enterprise_type_enum',
-            create_type=False),
-    )
+    enterprise_type: Mapped[EnterpriseType] = mapped_column(enterprise_type_enum)
 
     members: Mapped[list['EnterpriseMember']] = relationship(
         'EnterpriseMember',
@@ -102,10 +100,6 @@ class Enterprise(Base):
         'Machine',
         back_populates='enterprise',
         cascade='all, delete-orphan'
-    )
-    material_categories: Mapped['MaterialCategory'] = relationship(
-        'MaterialCategory',
-        back_populates='enterprise',
     )
     toolings: Mapped[list['Tooling']] = relationship(
         'Tooling',
@@ -197,17 +191,11 @@ class EnterpriseMember(Base):
     enterprise_id: Mapped[int] = mapped_column(ForeignKey('enterprise.id'))
     user_id: Mapped[int] = mapped_column(ForeignKey('user.id'), unique=True)
     role: Mapped[MemberRole] = mapped_column(
-        PG_ENUM(
-            MemberRole,
-            name='role_enum',
-            create_type=True),
+        member_role_enum,
         default=MemberRole.EMPLOYEE
     )
     status: Mapped[MemberStatus] = mapped_column(
-        PG_ENUM(
-            MemberStatus,
-            name='status_enum',
-            create_type=True),
+        member_status_enum,
         default=MemberStatus.INVITED
     )
     joined_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())

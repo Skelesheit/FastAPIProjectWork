@@ -1,15 +1,22 @@
 from typing import Any
-from sqlalchemy.orm import selectinload
-from sqlalchemy.orm import Load
 
-from src.db.models import Material
-from src.serializers.resources import MaterialOut, MaterialCreate, MaterialUpdate
+from sqlalchemy.orm import selectinload
+
+from src.db.models import Material, AssortmentType
+from src.serializers.resources import (
+    MaterialOut
+)
+
 
 class MaterialService:
 
     @classmethod
-    def get_options(cls) -> list[Load]:
-        return [selectinload(Material.category)]
+    def get_options(cls) -> list:
+        return [
+            selectinload(Material.category),
+            selectinload(Material.assortment_type)
+            .selectinload(AssortmentType.gost)
+        ]
 
     @classmethod
     async def get(cls, id_: int, enterprise_id: int, **kwargs: Any) -> MaterialOut:
@@ -42,7 +49,7 @@ class MaterialService:
 
     @classmethod
     async def update(cls, id_: int, enterprise_id: int, **kwargs: Any) -> MaterialOut:
-        obj =  await Material.update_by_enterprise(
+        obj = await Material.update_by_enterprise(
             id_=id_,
             enterprise_id=enterprise_id,
             load_options=cls.get_options(),

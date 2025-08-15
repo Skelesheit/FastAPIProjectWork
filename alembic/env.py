@@ -6,6 +6,7 @@ from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from src.db.models import *
+from src.db.enums import *
 
 # Конфигурация Alembic
 config = context.config

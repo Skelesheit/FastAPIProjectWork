@@ -51,7 +51,8 @@ class EnterpriseGeneralBase(Base):
     async def get_by_enterprise(
             cls: Type[T],
             id_: int,
-            enterprise_id: int
+            enterprise_id: int,
+            load_options: list[Load] | None = None,
     ) -> T | None:
         async with get_session() as session:
             # запрос при котором либо общие данные, либо те которые есть у компании
@@ -71,6 +72,9 @@ class EnterpriseGeneralBase(Base):
                     )
                 )
             )
+            # прикручиваем зависимости load options
+            stmt = orm.apply_load_options(stmt, load_options)
+
             result = await session.execute(stmt)
             return result.scalar_one_or_none()
 
@@ -168,6 +172,7 @@ class EnterpriseGeneralBase(Base):
     async def list_by_enterprise(
             cls: Type[T],
             enterprise_id: int,
+            load_options: list[Load] | None = None,
             **kwargs: Any
     ) -> list[T]:
         async with get_session() as session:
@@ -186,6 +191,8 @@ class EnterpriseGeneralBase(Base):
                     ])
                 )
             )
+            # прикручиваем зависимости load options
+            stmt = orm.apply_load_options(stmt, load_options)
 
             result = await session.execute(stmt)
             return result.scalars().all()
